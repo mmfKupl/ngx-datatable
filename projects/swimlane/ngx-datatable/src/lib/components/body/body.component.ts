@@ -28,7 +28,7 @@ import { translateXY } from '../../utils/translate';
       [selectEnabled]="selectEnabled"
       [selectionType]="selectionType"
       [rowIdentity]="rowIdentity"
-      (select)="select.emit($event)"
+      (select)="onSelect($event)"
       (activate)="activate.emit($event)"
     >
       <datatable-scroller
@@ -372,6 +372,13 @@ export class DataTableBodyComponent implements OnInit, OnDestroy {
     this.updateIndexes();
     this.updatePage(event.direction);
     this.updateRows();
+  }
+
+  onSelect(event: any) {
+    if (event instanceof Event) {
+      return;
+    }
+    this.select.emit(event);
   }
 
   /**

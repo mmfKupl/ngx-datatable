@@ -59,7 +59,7 @@ import { translateXY } from '../../utils/translate';
           [sortUnsetIcon]="sortUnsetIcon"
           [allRowsSelected]="allRowsSelected"
           (sort)="onSort($event)"
-          (select)="select.emit($event)"
+          (select)="onSelect($event)"
           (columnContextmenu)="columnContextmenu.emit($event)"
         >
         </datatable-header-cell>
@@ -201,6 +201,13 @@ export class DataTableHeaderComponent implements OnDestroy {
 
   trackByGroups(index: number, colGroup: any): any {
     return colGroup.type;
+  }
+
+  onSelect(event: any) {
+    if (event instanceof Event) {
+      return;
+    }
+    this.select.emit(event);
   }
 
   columnTrackingFn(index: number, column: any): any {
