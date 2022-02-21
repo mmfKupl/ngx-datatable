@@ -1087,6 +1087,9 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
    * Toggle all row selection
    */
   onHeaderSelect(event: any): void {
+    if (event instanceof Event) {
+      return;
+    }
     if (this.bodyComponent && this.selectAllRowsOnPage) {
       // before we splice, chk if we currently have all selected
       const first = this.bodyComponent.indexes.first;
@@ -1120,6 +1123,9 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
    * A row was selected from body
    */
   onBodySelect(event: any): void {
+    if (event instanceof Event) {
+      return;
+    }
     this.select.emit(event);
   }
 
