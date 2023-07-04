@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, Optional, Inject } from '@angular/core';
 import { SelectionType } from '../../types/selection.type';
 import { selectRowsBetween, selectRows } from '../../utils/selection';
 import { Keys } from '../../utils/keys';
+import { SelectionActivateFilterService } from '../../services/selection-activate-filter.service';
 
 export interface Model {
   type: string;
@@ -29,6 +30,12 @@ export class DataTableSelectionComponent {
   @Output() select: EventEmitter<any> = new EventEmitter();
 
   prevIndex: number;
+
+  constructor(
+    @Optional()
+    @Inject(SelectionActivateFilterService)
+    private selectionActivateFilterService?: SelectionActivateFilterService
+  ) {}
 
   selectRow(event: KeyboardEvent | MouseEvent, index: number, row: any): void {
     if (!this.selectEnabled) return;
@@ -65,6 +72,9 @@ export class DataTableSelectionComponent {
   }
 
   onActivate(model: Model, index: number): void {
+    if (this.selectionActivateFilterService?.shouldPreventActivateEvent(model)) {
+      return;
+    }
     const { type, event, row } = model;
     const chkbox = this.selectionType === SelectionType.checkbox;
     const select = (!chkbox && (type === 'click' || type === 'dblclick')) || (chkbox && type === 'checkbox');
