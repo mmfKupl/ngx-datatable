@@ -335,10 +335,13 @@ export class DataTableHeaderComponent implements OnDestroy {
       width: `${widths[group]}px`
     };
 
+    const scrollWidth: number = this.scrollbarHelper.width;
     if (group === 'center') {
+      if (widths['right'] === 0) {
+        styles.width = `${widths[group] + scrollWidth}px`;
+      }
       translateXY(styles, offsetX * -1, 0);
     } else if (group === 'right') {
-      const scrollWidth: number = this.scrollbarHelper.width;
       const totalDiff = widths.total - this.innerWidth + scrollWidth;
       const offset = totalDiff * -1;
       translateXY(styles, offset, 0);
