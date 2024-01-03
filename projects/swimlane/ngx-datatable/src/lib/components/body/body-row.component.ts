@@ -182,7 +182,7 @@ export class DataTableBodyRowComponent implements DoCheck {
 
   calcStylesByGroup(group: string) {
     const widths = this._columnGroupWidths;
-    const offsetX = this.offsetX;
+    const offsetX = this.offsetX || 0;
 
     const styles = {
       width: `${widths[group]}px`
@@ -191,8 +191,9 @@ export class DataTableBodyRowComponent implements DoCheck {
     if (group === 'left') {
       translateXY(styles, offsetX, 0);
     } else if (group === 'right') {
+      const scrollWidth: number = this.scrollbarHelper.width;
       const bodyWidth = parseInt(this.innerWidth + '', 0);
-      const totalDiff = widths.total - bodyWidth;
+      const totalDiff = widths.total - bodyWidth + scrollWidth;
       const offsetDiff = totalDiff - offsetX;
       const offset = offsetDiff * -1;
       translateXY(styles, offset, 0);

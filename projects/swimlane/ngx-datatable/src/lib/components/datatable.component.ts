@@ -826,10 +826,7 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
   ): any[] | undefined {
     if (!columns) return undefined;
 
-    let width = this._innerWidth;
-    if (this.scrollbarV) {
-      width = width - this.scrollbarHelper.width;
-    }
+    const width = this._innerWidth - this.scrollbarHelper.width;
 
     if (this.columnMode === ColumnMode.force) {
       forceFillColumnWidths(columns, width, forceIdx, allowBleed);
