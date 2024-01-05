@@ -11,13 +11,17 @@ export class ScrollbarHelper {
 
   constructor(@Inject(DOCUMENT) private document: any) {}
 
+  protected getElementToAppend(): HTMLElement {
+    return this.document.body;
+  }
+
   getWidth(): number {
     const outer = this.document.createElement('div');
     outer.classList.add('ngx-datatable-scroller-helper-outer');
     outer.style.visibility = 'hidden';
     outer.style.width = '100px';
     outer.style.msOverflowStyle = 'scrollbar';
-    this.document.body.appendChild(outer);
+    this.getElementToAppend().appendChild(outer);
 
     const widthNoScroll = outer.offsetWidth;
     outer.style.overflow = 'scroll';
