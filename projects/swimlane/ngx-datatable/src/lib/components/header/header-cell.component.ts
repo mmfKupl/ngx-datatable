@@ -51,6 +51,7 @@ export class DataTableHeaderCellComponent {
   @Input() sortAscendingIcon: string;
   @Input() sortDescendingIcon: string;
   @Input() sortUnsetIcon: string;
+  @Input() extraWidth: number = 0;
 
   @Input() isTarget: boolean;
   @Input() targetMarkerTemplate: any;
@@ -139,17 +140,17 @@ export class DataTableHeaderCellComponent {
 
   @HostBinding('style.minWidth.px')
   get minWidth(): number {
-    return this.column.minWidth + this.scrollbarHelper.width;
+    return this.column.minWidth + this.extraWidth;
   }
 
   @HostBinding('style.maxWidth.px')
   get maxWidth(): number {
-    return this.column.maxWidth + this.scrollbarHelper.width;
+    return this.column.maxWidth + this.extraWidth;
   }
 
   @HostBinding('style.width.px')
   get width(): number {
-    return this.column.width + this.scrollbarHelper.width;
+    return this.column.width + this.extraWidth;
   }
 
   get isCheckboxable(): boolean {

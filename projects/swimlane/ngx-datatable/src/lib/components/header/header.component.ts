@@ -24,7 +24,7 @@ import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
       orderable
       (reorder)="onColumnReordered($event)"
       (targetChanged)="onTargetChanged($event)"
-      [style.width.px]="_columnGroupWidths.total"
+      [style.width.px]="totalHeaderWidth"
       class="datatable-header-inner"
     >
       <div
@@ -34,7 +34,9 @@ import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
       >
         <datatable-header-cell
           role="columnheader"
-          *ngFor="let column of colGroup.columns; trackBy: columnTrackingFn"
+          *ngFor="let column of colGroup.columns; trackBy: columnTrackingFn; let last = last"
+          [style.--ngx-last-cell-extra-width]="last ? _lastCellExtraWidth[colGroup.type] + 'px' : ''"
+          [extraWidth]="last ? _lastCellExtraWidth[colGroup.type] : 0"
           resizeable
           [resizeEnabled]="column.resizeable"
           (resize)="onColumnResized($event, column)"
@@ -89,6 +91,7 @@ export class DataTableHeaderComponent implements OnDestroy {
       if (this._columns) {
         const colByPin = columnsByPin(this._columns);
         this._columnGroupWidths = columnGroupWidths(colByPin, this._columns);
+        this.totalHeaderWidth = this._columnGroupWidths.total + this.scrollbarHelper.width;
         this.setStylesByGroup();
       }
     });
@@ -127,6 +130,7 @@ export class DataTableHeaderComponent implements OnDestroy {
     this._columnsByPin = columnsByPinArr(val);
     setTimeout(() => {
       this._columnGroupWidths = columnGroupWidths(colsByPin, val);
+      this.totalHeaderWidth = this._columnGroupWidths.total + this.scrollbarHelper.width;
       this.setStylesByGroup();
     });
   }
@@ -154,6 +158,7 @@ export class DataTableHeaderComponent implements OnDestroy {
   _columnGroupWidths: any = {
     total: 100
   };
+  totalHeaderWidth: number = 100;
   _innerWidth: number;
   _offsetX: number;
   _columns: any[];
@@ -162,6 +167,11 @@ export class DataTableHeaderComponent implements OnDestroy {
     left: {},
     center: {},
     right: {}
+  };
+  _lastCellExtraWidth: { [prop: string]: number } = {
+    left: 0,
+    center: 0,
+    right: 0
   };
 
   private destroyed = false;
@@ -322,6 +332,8 @@ export class DataTableHeaderComponent implements OnDestroy {
     this._styleByGroup.left = this.calcStylesByGroup('left');
     this._styleByGroup.center = this.calcStylesByGroup('center');
     this._styleByGroup.right = this.calcStylesByGroup('right');
+    this._lastCellExtraWidth.center = this.calcExtraLastCellWidth('center');
+    this._lastCellExtraWidth.right = this.calcExtraLastCellWidth('right');
     if (!this.destroyed) {
       this.cd.detectChanges();
     }
@@ -337,17 +349,27 @@ export class DataTableHeaderComponent implements OnDestroy {
 
     const scrollWidth: number = this.scrollbarHelper.width;
     if (group === 'center') {
-      if (widths['right'] === 0) {
-        styles.width = `${widths[group] + scrollWidth}px`;
-      }
       translateXY(styles, offsetX * -1, 0);
     } else if (group === 'right') {
       const totalDiff = widths.total - this.innerWidth + scrollWidth;
       const offset = totalDiff * -1;
       translateXY(styles, offset, 0);
-      styles.width = `${widths[group] + scrollWidth}px`;
     }
 
     return styles;
+  }
+
+  calcExtraLastCellWidth(group: string): number {
+    const rightColumnsAmount = this._columnsByPin?.find(col => col.type === 'right')?.columns?.length ?? 0;
+    const scrollWidth: number = this.scrollbarHelper.width;
+
+    if (group === 'center') {
+      return rightColumnsAmount === 0 && scrollWidth !== 0 ? scrollWidth : 0;
+    }
+    if (group === 'right') {
+      return rightColumnsAmount !== 0 && scrollWidth !== 0 ? scrollWidth : 0;
+    }
+
+    return 0;
   }
 }
