@@ -128,6 +128,8 @@ export class DataTableHeaderComponent implements OnDestroy {
 
     const colsByPin = columnsByPin(val);
     this._columnsByPin = columnsByPinArr(val);
+    this.recalculateColumnsAmount();
+
     setTimeout(() => {
       this._columnGroupWidths = columnGroupWidths(colsByPin, val);
       this.totalHeaderWidth = this._columnGroupWidths.total + this.scrollbarHelper.width;
@@ -155,6 +157,11 @@ export class DataTableHeaderComponent implements OnDestroy {
   @Output() columnContextmenu = new EventEmitter<{ event: MouseEvent; column: any }>(false);
 
   _columnsByPin: any;
+  _columnsAmount: { [prop: string]: number } = {
+    left: 0,
+    center: 0,
+    right: 0
+  };
   _columnGroupWidths: any = {
     total: 100
   };
@@ -332,6 +339,7 @@ export class DataTableHeaderComponent implements OnDestroy {
     this._styleByGroup.left = this.calcStylesByGroup('left');
     this._styleByGroup.center = this.calcStylesByGroup('center');
     this._styleByGroup.right = this.calcStylesByGroup('right');
+    this._lastCellExtraWidth.left = this.calcExtraLastCellWidth('left');
     this._lastCellExtraWidth.center = this.calcExtraLastCellWidth('center');
     this._lastCellExtraWidth.right = this.calcExtraLastCellWidth('right');
     if (!this.destroyed) {
@@ -343,15 +351,17 @@ export class DataTableHeaderComponent implements OnDestroy {
     const widths = this._columnGroupWidths;
     const offsetX = this.offsetX || 0;
 
+    const scrollWidth: number = this.scrollbarHelper.width;
+    const extraWidth: number = this.shouldAddExtraWidth(group) ? scrollWidth : 0;
+
     const styles = {
-      width: `${widths[group]}px`
+      width: `${widths[group] + extraWidth}px`
     };
 
-    const scrollWidth: number = this.scrollbarHelper.width;
     if (group === 'center') {
       translateXY(styles, offsetX * -1, 0);
     } else if (group === 'right') {
-      const totalDiff = widths.total - this.innerWidth + scrollWidth;
+      const totalDiff = widths.total - this.innerWidth + extraWidth;
       const offset = totalDiff * -1;
       translateXY(styles, offset, 0);
     }
@@ -360,16 +370,43 @@ export class DataTableHeaderComponent implements OnDestroy {
   }
 
   calcExtraLastCellWidth(group: string): number {
-    const rightColumnsAmount = this._columnsByPin?.find(col => col.type === 'right')?.columns?.length ?? 0;
+    const scrollWidth: number = this.scrollbarHelper.width;
+    return this.shouldAddExtraWidth(group) ? scrollWidth : 0;
+  }
+
+  recalculateColumnsAmount(): void {
+    this._columnsAmount.left = 0;
+    this._columnsAmount.center = 0;
+    this._columnsAmount.right = 0;
+
+    if (!this._columnsByPin) {
+      return;
+    }
+
+    for (const a of this._columnsByPin) {
+      this._columnsAmount[a.type] = a.columns.length;
+    }
+  }
+
+  shouldAddExtraWidth(group: string): boolean {
+    const centerColumnsAmount = this._columnsAmount.center;
+    const rightColumnsAmount = this._columnsAmount.right;
     const scrollWidth: number = this.scrollbarHelper.width;
 
-    if (group === 'center') {
-      return rightColumnsAmount === 0 && scrollWidth !== 0 ? scrollWidth : 0;
-    }
-    if (group === 'right') {
-      return rightColumnsAmount !== 0 && scrollWidth !== 0 ? scrollWidth : 0;
+    if (scrollWidth === 0) {
+      return false;
     }
 
-    return 0;
+    if (group === 'left') {
+      return centerColumnsAmount === 0 && rightColumnsAmount === 0;
+    }
+    if (group === 'center') {
+      return rightColumnsAmount === 0 && centerColumnsAmount !== 0;
+    }
+    if (group === 'right') {
+      return rightColumnsAmount !== 0;
+    }
+
+    return false;
   }
 }
