@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { Subscription, fromEvent } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { ColumnResizeService, ColumnWidths } from '../services/column-resize.service';
 
 @Directive({
   selector: '[resizeable]',
@@ -29,8 +30,13 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
   subscription: Subscription;
   resizing: boolean = false;
   private resizeHandle: HTMLElement;
+  private initialWidths: ColumnWidths = {
+    width: '',
+    minWidth: '',
+    maxWidth: ''
+  };
 
-  constructor(element: ElementRef, private renderer: Renderer2) {
+  constructor(element: ElementRef, private renderer: Renderer2, private columnResizeService: ColumnResizeService) {
     this.element = element.nativeElement;
   }
 
@@ -68,23 +74,40 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
     const isHandle = (<HTMLElement>event.target).classList.contains('resize-handle');
     const initialWidth = this.element.clientWidth;
     const mouseDownScreenX = event.screenX;
+    this.initialWidths = {
+      ...this.initialWidths,
+      width: this.element.style.width,
+      maxWidth: this.element.style.maxWidth,
+      minWidth: this.element.style.minWidth
+    };
 
     if (isHandle) {
       event.stopPropagation();
       this.resizing = true;
 
       const mouseup = fromEvent(document, 'mouseup');
-      this.subscription = mouseup.subscribe((ev: MouseEvent) => this.onMouseup());
+      this.subscription = mouseup.subscribe((e: MouseEvent) => {
+        this.onMouseup();
+        this.columnResizeService.afterMouseUp(e, this.element, this.initialWidths);
+      });
 
       const mouseMoveSub = fromEvent(document, 'mousemove')
         .pipe(takeUntil(mouseup))
-        .subscribe((e: MouseEvent) => this.move(e, initialWidth, mouseDownScreenX));
+        .subscribe((e: MouseEvent) => {
+          const nextWidth: number = this.move(e, initialWidth, mouseDownScreenX);
+          const newWidths: ColumnWidths = {
+            ...this.initialWidths,
+            width: `${nextWidth}px`
+          };
+          this.columnResizeService.afterMouseMove(e, this.element, newWidths);
+        });
 
       this.subscription.add(mouseMoveSub);
+      this.columnResizeService.afterMouseDown(event, this.element, this.initialWidths);
     }
   }
 
-  move(event: MouseEvent, initialWidth: number, mouseDownScreenX: number): void {
+  move(event: MouseEvent, initialWidth: number, mouseDownScreenX: number): number {
     const movementX = event.screenX - mouseDownScreenX;
     const newWidth = initialWidth + movementX;
 
@@ -93,7 +116,9 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
 
     if (overMinWidth && underMaxWidth) {
       this.element.style.width = `${newWidth}px`;
+      return newWidth;
     }
+    return initialWidth;
   }
 
   private _destroySubscription() {

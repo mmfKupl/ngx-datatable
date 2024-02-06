@@ -234,6 +234,7 @@ export class DataTableHeaderComponent implements OnDestroy {
   }
 
   onColumnResized(width: number, column: DataTableColumnDirective): void {
+    const notLimitedNewWidth: number = width;
     if (width <= column.minWidth) {
       width = column.minWidth;
     } else if (width >= column.maxWidth) {
@@ -243,7 +244,8 @@ export class DataTableHeaderComponent implements OnDestroy {
     this.resize.emit({
       column,
       prevValue: column.width,
-      newValue: width
+      newValue: width,
+      notLimitedNewValue: notLimitedNewWidth
     });
   }
 

@@ -978,7 +978,7 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
   /**
    * The header triggered a column resize event.
    */
-  onColumnResize({ column, newValue }: any): void {
+  onColumnResize({ column, newValue, notLimitedNewValue }: any): void {
     /* Safari/iOS 10.2 workaround */
     if (column === undefined) {
       return;
@@ -1005,7 +1005,8 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
 
     this.resize.emit({
       column,
-      newValue
+      newValue,
+      notLimitedNewValue
     });
   }
 
