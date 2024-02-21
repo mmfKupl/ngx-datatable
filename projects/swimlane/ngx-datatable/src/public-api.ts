@@ -37,8 +37,10 @@ export * from './lib/directives/visibility.directive';
 
 // services
 export * from './lib/services/scrollbar-helper.service';
+export * from './lib/services/column-resize.service';
 export * from './lib/services/dimensions-helper.service';
 export * from './lib/services/column-changes.service';
+export * from './lib/services/selection-activate-filter.service';
 
 // types
 export * from './lib/types/column-mode.type';

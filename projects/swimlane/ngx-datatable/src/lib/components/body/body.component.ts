@@ -8,13 +8,15 @@ import {
   ViewChild,
   OnInit,
   OnDestroy,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  SkipSelf
 } from '@angular/core';
 import { ScrollerComponent } from './scroller.component';
 import { SelectionType } from '../../types/selection.type';
 import { columnsByPin, columnGroupWidths } from '../../utils/column';
 import { RowHeightCache } from '../../utils/row-height-cache';
 import { translateXY } from '../../utils/translate';
+import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
 
 @Component({
   selector: 'datatable-body',
@@ -28,7 +30,7 @@ import { translateXY } from '../../utils/translate';
       [selectEnabled]="selectEnabled"
       [selectionType]="selectionType"
       [rowIdentity]="rowIdentity"
-      (select)="select.emit($event)"
+      (select)="onSelect($event)"
       (activate)="activate.emit($event)"
     >
       <datatable-scroller
@@ -269,7 +271,7 @@ export class DataTableBodyComponent implements OnInit, OnDestroy {
   /**
    * Creates an instance of DataTableBodyComponent.
    */
-  constructor(private cd: ChangeDetectorRef) {
+  constructor(private cd: ChangeDetectorRef, @SkipSelf() private scrollbarHelper: ScrollbarHelper) {
     // declare fn here so we can get access to the `this` property
     this.rowTrackingFn = (index: number, row: any): any => {
       const idx = this.getRowIndex(row);
@@ -355,11 +357,18 @@ export class DataTableBodyComponent implements OnInit, OnDestroy {
    */
   onBodyScroll(event: any): void {
     const scrollYPos: number = event.scrollYPos;
-    const scrollXPos: number = event.scrollXPos;
+    let scrollXPos: number = event.scrollXPos;
 
     // if scroll change, trigger update
     // this is mainly used for header cell positions
     if (this.offsetY !== scrollYPos || this.offsetX !== scrollXPos) {
+      const { total } = this.columnGroupWidths;
+      const scrollbarWidth = this.scrollbarHelper.width | 0;
+      const maxScrollXPos = total - this.innerWidth + scrollbarWidth;
+      if (scrollXPos >= maxScrollXPos) {
+        scrollXPos = maxScrollXPos;
+        this.scroller.setOffsetX(scrollXPos);
+      }
       this.scroll.emit({
         offsetY: scrollYPos,
         offsetX: scrollXPos
@@ -372,6 +381,13 @@ export class DataTableBodyComponent implements OnInit, OnDestroy {
     this.updateIndexes();
     this.updatePage(event.direction);
     this.updateRows();
+  }
+
+  onSelect(event: any) {
+    if (event instanceof Event) {
+      return;
+    }
+    this.select.emit(event);
   }
 
   /**
@@ -746,7 +762,7 @@ export class DataTableBodyComponent implements OnInit, OnDestroy {
    */
   stylesByGroup(group: string) {
     const widths = this.columnGroupWidths;
-    const offsetX = this.offsetX;
+    const offsetX = this.offsetX || 0;
 
     const styles = {
       width: `${widths[group]}px`
@@ -755,8 +771,9 @@ export class DataTableBodyComponent implements OnInit, OnDestroy {
     if (group === 'left') {
       translateXY(styles, offsetX, 0);
     } else if (group === 'right') {
+      const scrollWidth: number = this.scrollbarHelper.width;
       const bodyWidth = parseInt(this.innerWidth + '', 0);
-      const totalDiff = widths.total - bodyWidth;
+      const totalDiff = widths.total - bodyWidth + scrollWidth;
       const offsetDiff = totalDiff - offsetX;
       const offset = offsetDiff * -1;
       translateXY(styles, offset, 0);

@@ -826,10 +826,7 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
   ): any[] | undefined {
     if (!columns) return undefined;
 
-    let width = this._innerWidth;
-    if (this.scrollbarV) {
-      width = width - this.scrollbarHelper.width;
-    }
+    const width = this._innerWidth - this.scrollbarHelper.width;
 
     if (this.columnMode === ColumnMode.force) {
       forceFillColumnWidths(columns, width, forceIdx, allowBleed);
@@ -981,7 +978,7 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
   /**
    * The header triggered a column resize event.
    */
-  onColumnResize({ column, newValue }: any): void {
+  onColumnResize({ column, newValue, notLimitedNewValue }: any): void {
     /* Safari/iOS 10.2 workaround */
     if (column === undefined) {
       return;
@@ -1008,7 +1005,8 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
 
     this.resize.emit({
       column,
-      newValue
+      newValue,
+      notLimitedNewValue
     });
   }
 
@@ -1087,6 +1085,9 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
    * Toggle all row selection
    */
   onHeaderSelect(event: any): void {
+    if (event instanceof Event) {
+      return;
+    }
     if (this.bodyComponent && this.selectAllRowsOnPage) {
       // before we splice, chk if we currently have all selected
       const first = this.bodyComponent.indexes.first;
@@ -1120,6 +1121,9 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
    * A row was selected from body
    */
   onBodySelect(event: any): void {
+    if (event instanceof Event) {
+      return;
+    }
     this.select.emit(event);
   }
 

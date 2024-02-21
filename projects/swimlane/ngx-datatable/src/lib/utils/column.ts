@@ -31,7 +31,7 @@ export function columnGroupWidths(groups: any, all: any) {
     left: columnTotalWidth(groups.left),
     center: columnTotalWidth(groups.center),
     right: columnTotalWidth(groups.right),
-    total: Math.floor(columnTotalWidth(all))
+    total: Math.round(columnTotalWidth(all))
   };
 }
 
@@ -40,15 +40,15 @@ export function columnGroupWidths(groups: any, all: any) {
  */
 export function columnTotalWidth(columns: any[], prop?: string) {
   let totalWidth = 0;
-
   if (columns) {
     for (const c of columns) {
       const has = prop && c[prop];
       const width = has ? c[prop] : c.width;
-      totalWidth = totalWidth + parseFloat(width);
+      const minWidth = c.minWidth || 0;
+      const biggerWidth = minWidth > width ? minWidth : width;
+      totalWidth = totalWidth + parseFloat(biggerWidth);
     }
   }
-
   return totalWidth;
 }
 

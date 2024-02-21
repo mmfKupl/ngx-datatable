@@ -1,4 +1,4 @@
-import { Directive, TemplateRef, ContentChild, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Directive, TemplateRef, ContentChild, Input, OnChanges } from '@angular/core';
 import { DataTableColumnHeaderDirective } from './column-header.directive';
 import { DataTableColumnCellDirective } from './column-cell.directive';
 import { DataTableColumnCellTreeToggle } from './tree.directive';
@@ -7,6 +7,7 @@ import { TableColumnProp } from '../../types/table-column.type';
 
 @Directive({ selector: 'ngx-datatable-column' })
 export class DataTableColumnDirective implements OnChanges {
+  @Input() $$id: string;
   @Input() name: string;
   @Input() prop: TableColumnProp;
   @Input() frozenLeft: any;

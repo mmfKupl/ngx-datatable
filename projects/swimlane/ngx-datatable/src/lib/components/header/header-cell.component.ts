@@ -6,13 +6,15 @@ import {
   HostBinding,
   HostListener,
   ChangeDetectionStrategy,
-  ChangeDetectorRef
+  ChangeDetectorRef,
+  SkipSelf
 } from '@angular/core';
 import { SortType } from '../../types/sort.type';
 import { SelectionType } from '../../types/selection.type';
 import { TableColumn } from '../../types/table-column.type';
 import { nextSortDir } from '../../utils/sort';
 import { SortDirection } from '../../types/sort-direction.type';
+import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
 
 @Component({
   selector: 'datatable-header-cell',
@@ -49,6 +51,7 @@ export class DataTableHeaderCellComponent {
   @Input() sortAscendingIcon: string;
   @Input() sortDescendingIcon: string;
   @Input() sortUnsetIcon: string;
+  @Input() extraWidth: number = 0;
 
   @Input() isTarget: boolean;
   @Input() targetMarkerTemplate: any;
@@ -137,17 +140,17 @@ export class DataTableHeaderCellComponent {
 
   @HostBinding('style.minWidth.px')
   get minWidth(): number {
-    return this.column.minWidth;
+    return this.column.minWidth + this.extraWidth;
   }
 
   @HostBinding('style.maxWidth.px')
   get maxWidth(): number {
-    return this.column.maxWidth;
+    return this.column.maxWidth + this.extraWidth;
   }
 
   @HostBinding('style.width.px')
   get width(): number {
-    return this.column.width;
+    return this.column.width + this.extraWidth;
   }
 
   get isCheckboxable(): boolean {
@@ -164,7 +167,7 @@ export class DataTableHeaderCellComponent {
   private _column: TableColumn;
   private _sorts: any[];
 
-  constructor(private cd: ChangeDetectorRef) {
+  constructor(private cd: ChangeDetectorRef, @SkipSelf() private scrollbarHelper: ScrollbarHelper) {
     this.cellContext = {
       column: this.column,
       sortDir: this.sortDir,
