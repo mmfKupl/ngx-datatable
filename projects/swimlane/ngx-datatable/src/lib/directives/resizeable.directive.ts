@@ -9,7 +9,7 @@ import {
   AfterViewInit,
   Renderer2
 } from '@angular/core';
-import { Subscription, fromEvent } from 'rxjs';
+import { Subscription, fromEvent, BehaviorSubject, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ColumnResizeService, ColumnWidths } from '../services/column-resize.service';
 
@@ -20,7 +20,15 @@ import { ColumnResizeService, ColumnWidths } from '../services/column-resize.ser
   }
 })
 export class ResizeableDirective implements OnDestroy, AfterViewInit {
-  @Input() resizeEnabled: boolean = true;
+  protected resizeEnabled$: BehaviorSubject<boolean> = new BehaviorSubject(true);
+
+  @Input() set resizeEnabled(resizeEnabled: boolean) {
+    this.resizeEnabled$.next(resizeEnabled);
+  }
+  get resizeEnabled(): boolean {
+    return this.resizeEnabled$.value;
+  }
+
   @Input() minWidth: number;
   @Input() maxWidth: number;
 
@@ -36,22 +44,20 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
     maxWidth: ''
   };
 
+  protected destroy$: Subject<void> = new Subject<void>();
+
   constructor(element: ElementRef, private renderer: Renderer2, private columnResizeService: ColumnResizeService) {
     this.element = element.nativeElement;
   }
 
   ngAfterViewInit(): void {
-    const renderer2 = this.renderer;
-    this.resizeHandle = renderer2.createElement('span');
-    if (this.resizeEnabled) {
-      renderer2.addClass(this.resizeHandle, 'resize-handle');
-    } else {
-      renderer2.addClass(this.resizeHandle, 'resize-handle--not-resizable');
-    }
-    renderer2.appendChild(this.element, this.resizeHandle);
+    this.resizeEnabled$.pipe(takeUntil(this.destroy$)).subscribe((enabled: boolean) => {
+      this.toggleResizeHandle(enabled);
+    });
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
     this._destroySubscription();
     if (this.renderer.destroyNode) {
       this.renderer.destroyNode(this.resizeHandle);
@@ -125,6 +131,25 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
     if (this.subscription) {
       this.subscription.unsubscribe();
       this.subscription = undefined;
+    }
+  }
+
+  private toggleResizeHandle(enabled: boolean): void {
+    const isResizeHandleExist: boolean = this.resizeHandle !== undefined;
+
+    const renderer2 = this.renderer;
+    if (!isResizeHandleExist) {
+      this.resizeHandle = renderer2.createElement('span');
+    }
+    if (enabled) {
+      renderer2.removeClass(this.resizeHandle, 'resize-handle--not-resizable');
+      renderer2.addClass(this.resizeHandle, 'resize-handle');
+    } else {
+      renderer2.removeClass(this.resizeHandle, 'resize-handle');
+      renderer2.addClass(this.resizeHandle, 'resize-handle--not-resizable');
+    }
+    if (!isResizeHandleExist) {
+      renderer2.appendChild(this.element, this.resizeHandle);
     }
   }
 }
