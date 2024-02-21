@@ -6,15 +6,13 @@ import {
   HostBinding,
   HostListener,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
-  SkipSelf
+  ChangeDetectorRef
 } from '@angular/core';
 import { SortType } from '../../types/sort.type';
 import { SelectionType } from '../../types/selection.type';
 import { TableColumn } from '../../types/table-column.type';
 import { nextSortDir } from '../../utils/sort';
 import { SortDirection } from '../../types/sort-direction.type';
-import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
 
 @Component({
   selector: 'datatable-header-cell',
@@ -167,7 +165,7 @@ export class DataTableHeaderCellComponent {
   private _column: TableColumn;
   private _sorts: any[];
 
-  constructor(private cd: ChangeDetectorRef, @SkipSelf() private scrollbarHelper: ScrollbarHelper) {
+  constructor(private cd: ChangeDetectorRef) {
     this.cellContext = {
       column: this.column,
       sortDir: this.sortDir,
