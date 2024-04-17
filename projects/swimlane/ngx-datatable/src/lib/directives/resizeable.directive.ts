@@ -7,7 +7,8 @@ import {
   EventEmitter,
   OnDestroy,
   AfterViewInit,
-  Renderer2
+  Renderer2,
+  HostBinding
 } from '@angular/core';
 import { Subscription, fromEvent, BehaviorSubject, Subject, Observable } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -37,6 +38,7 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
 
   element: HTMLElement;
   subscription: Subscription;
+  @HostBinding('class.resizing')
   resizing: boolean = false;
   private resizeHandle: HTMLElement;
   private initialWidths: ColumnWidths = {
