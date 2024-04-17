@@ -15,6 +15,7 @@ import { SelectionType } from '../../types/selection.type';
 import { DataTableColumnDirective } from '../columns/column.directive';
 import { translateXY } from '../../utils/translate';
 import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
+import { ColumnResizeEventType, ColumnResizeEvent } from '../../types/events.type';
 
 @Component({
   selector: 'datatable-header',
@@ -39,7 +40,7 @@ import { ScrollbarHelper } from '../../services/scrollbar-helper.service';
           [extraWidth]="last ? _lastCellExtraWidth[colGroup.type] : 0"
           resizeable
           [resizeEnabled]="column.resizeable"
-          (resize)="onColumnResized($event, column)"
+          (resizeChange)="onColumnResizeChange($event, column)"
           long-press
           [pressModel]="column"
           [pressEnabled]="reorderable && column.draggable"
@@ -152,7 +153,7 @@ export class DataTableHeaderComponent implements OnDestroy {
 
   @Output() sort: EventEmitter<any> = new EventEmitter();
   @Output() reorder: EventEmitter<any> = new EventEmitter();
-  @Output() resize: EventEmitter<any> = new EventEmitter();
+  @Output() columnResize: EventEmitter<ColumnResizeEvent> = new EventEmitter();
   @Output() select: EventEmitter<any> = new EventEmitter();
   @Output() columnContextmenu = new EventEmitter<{ event: MouseEvent; column: any }>(false);
 
@@ -233,7 +234,7 @@ export class DataTableHeaderComponent implements OnDestroy {
     return column.$$id;
   }
 
-  onColumnResized(width: number, column: DataTableColumnDirective): void {
+  onColumnResizeChange([type, width]: [ColumnResizeEventType, number], column: DataTableColumnDirective): void {
     const notLimitedNewWidth: number = width;
     if (width <= column.minWidth) {
       width = column.minWidth;
@@ -241,7 +242,8 @@ export class DataTableHeaderComponent implements OnDestroy {
       width = column.maxWidth;
     }
 
-    this.resize.emit({
+    this.columnResize.emit({
+      type,
       column,
       prevValue: column.width,
       newValue: width,
