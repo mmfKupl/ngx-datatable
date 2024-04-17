@@ -45,6 +45,7 @@ import { DimensionsHelper } from '../services/dimensions-helper.service';
 import { throttleable } from '../utils/throttle';
 import { forceFillColumnWidths, adjustColumnWidths } from '../utils/math';
 import { sortRows } from '../utils/sort';
+import { ColumnResizeEvent } from '../types/events.type';
 
 @Component({
   selector: 'ngx-datatable',
@@ -441,10 +442,7 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
    */
   @Output() reorder: EventEmitter<any> = new EventEmitter();
 
-  /**
-   * Column was resized.
-   */
-  @Output() resize: EventEmitter<any> = new EventEmitter();
+  @Output() columnResize: EventEmitter<any> = new EventEmitter();
 
   /**
    * The context menu was invoked on the table.
@@ -978,36 +976,34 @@ export class DatatableComponent implements OnInit, DoCheck, AfterViewInit {
   /**
    * The header triggered a column resize event.
    */
-  onColumnResize({ column, newValue, notLimitedNewValue }: any): void {
+  onColumnResize(event: ColumnResizeEvent): void {
+    const { column, notLimitedNewValue }: ColumnResizeEvent = event;
     /* Safari/iOS 10.2 workaround */
     if (column === undefined) {
       return;
     }
 
     let idx: number;
-    const cols = this._internalColumns.map((c, i) => {
-      c = { ...c };
-
-      if (c.$$id === column.$$id) {
-        idx = i;
-        c.width = newValue;
-
+    const cols: TableColumn[] = this._internalColumns.map((c, i) => {
+      if (c.$$id !== column.$$id) {
+        return c;
+      }
+      idx = i;
+      return {
+        ...c,
+        width: notLimitedNewValue,
+        maxWidth: notLimitedNewValue,
+        minWidth: 0,
         // set this so we can force the column
         // width distribution to be to this value
-        c.$$oldWidth = newValue;
-      }
-
-      return c;
+        $$oldWidth: notLimitedNewValue
+      };
     });
 
     this.recalculateColumns(cols, idx);
     this._internalColumns = cols;
 
-    this.resize.emit({
-      column,
-      newValue,
-      notLimitedNewValue
-    });
+    this.columnResize.emit({ ...event });
   }
 
   /**

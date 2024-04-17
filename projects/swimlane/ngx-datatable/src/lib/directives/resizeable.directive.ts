@@ -9,9 +9,10 @@ import {
   AfterViewInit,
   Renderer2
 } from '@angular/core';
-import { Subscription, fromEvent, BehaviorSubject, Subject } from 'rxjs';
+import { Subscription, fromEvent, BehaviorSubject, Subject, Observable } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ColumnResizeService, ColumnWidths } from '../services/column-resize.service';
+import { ColumnResizeEventType } from '../types/events.type';
 
 @Directive({
   selector: '[resizeable]',
@@ -32,7 +33,7 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
   @Input() minWidth: number;
   @Input() maxWidth: number;
 
-  @Output() resize: EventEmitter<any> = new EventEmitter();
+  @Output() resizeChange: EventEmitter<[ColumnResizeEventType, number]> = new EventEmitter();
 
   element: HTMLElement;
   subscription: Subscription;
@@ -66,20 +67,18 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
     }
   }
 
-  onMouseup(): void {
-    this.resizing = false;
-
-    if (this.subscription && !this.subscription.closed) {
-      this._destroySubscription();
-      this.resize.emit(this.element.clientWidth);
-    }
-  }
-
   @HostListener('mousedown', ['$event'])
-  onMousedown(event: MouseEvent): void {
-    const isHandle = (<HTMLElement>event.target).classList.contains('resize-handle');
-    const initialWidth = this.element.clientWidth;
-    const mouseDownScreenX = event.screenX;
+  onResizeStart(event: MouseEvent): void {
+    const isHandle: boolean = (<HTMLElement>event.target).classList.contains('resize-handle');
+    if (!isHandle) {
+      return;
+    }
+    event.stopPropagation();
+
+    const initialWidth: number = this.element.clientWidth;
+    const mouseDownScreenX: number = event.screenX;
+
+    this.resizing = true;
     this.initialWidths = {
       ...this.initialWidths,
       width: this.element.style.width,
@@ -87,33 +86,37 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
       minWidth: this.element.style.minWidth
     };
 
-    if (isHandle) {
-      event.stopPropagation();
-      this.resizing = true;
+    const mouseup$: Observable<MouseEvent> = fromEvent<MouseEvent>(document, 'mouseup');
+    this.subscription = mouseup$.subscribe((e: MouseEvent) => this.onResizeEnd(e));
 
-      const mouseup = fromEvent(document, 'mouseup');
-      this.subscription = mouseup.subscribe((e: MouseEvent) => {
-        this.onMouseup();
-        this.columnResizeService.afterMouseUp(e, this.element, this.initialWidths);
-      });
+    const mouseMoveSub: Subscription = fromEvent<MouseEvent>(document, 'mousemove')
+      .pipe(takeUntil(mouseup$))
+      .subscribe((e: MouseEvent) => this.onResizing(e, initialWidth, mouseDownScreenX));
 
-      const mouseMoveSub = fromEvent(document, 'mousemove')
-        .pipe(takeUntil(mouseup))
-        .subscribe((e: MouseEvent) => {
-          const nextWidth: number = this.move(e, initialWidth, mouseDownScreenX);
-          const newWidths: ColumnWidths = {
-            ...this.initialWidths,
-            width: `${nextWidth}px`
-          };
-          this.columnResizeService.afterMouseMove(e, this.element, newWidths);
-        });
+    this.subscription.add(mouseMoveSub);
 
-      this.subscription.add(mouseMoveSub);
-      this.columnResizeService.afterMouseDown(event, this.element, this.initialWidths);
-    }
+    this.columnResizeService.afterMouseDown(event, this.element, this.initialWidths);
+    this.emitResizeChangeEvent('resize-start', false);
   }
 
-  move(event: MouseEvent, initialWidth: number, mouseDownScreenX: number): number {
+  private onResizing(event: MouseEvent, initialWidth: number, mouseDownScreenX: number): void {
+    const nextWidth: number = this.move(event, initialWidth, mouseDownScreenX);
+    const newWidths: ColumnWidths = {
+      ...this.initialWidths,
+      width: `${nextWidth}px`
+    };
+
+    this.emitResizeChangeEvent('resizing', false);
+    this.columnResizeService.afterMouseMove(event, this.element, newWidths);
+  }
+
+  private onResizeEnd(event: MouseEvent): void {
+    this.resizing = false;
+    this.emitResizeChangeEvent('resize-end', true);
+    this.columnResizeService.afterMouseUp(event, this.element, this.initialWidths);
+  }
+
+  private move(event: MouseEvent, initialWidth: number, mouseDownScreenX: number): number {
     const movementX = event.screenX - mouseDownScreenX;
     const newWidth = initialWidth + movementX;
 
@@ -150,6 +153,15 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
     }
     if (!isResizeHandleExist) {
       renderer2.appendChild(this.element, this.resizeHandle);
+    }
+  }
+
+  private emitResizeChangeEvent(type: ColumnResizeEventType, destroySub: boolean): void {
+    if (this.subscription && !this.subscription.closed) {
+      if (destroySub) {
+        this._destroySubscription();
+      }
+      this.resizeChange.emit([type, this.element.clientWidth]);
     }
   }
 }
