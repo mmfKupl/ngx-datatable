@@ -7,8 +7,7 @@ import {
   EventEmitter,
   OnDestroy,
   AfterViewInit,
-  Renderer2,
-  HostBinding
+  Renderer2
 } from '@angular/core';
 import { Subscription, fromEvent, BehaviorSubject, Subject, Observable } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -18,7 +17,8 @@ import { ColumnResizeEventType } from '../types/events.type';
 @Directive({
   selector: '[resizeable]',
   host: {
-    '[class.resizeable]': 'resizeEnabled'
+    '[class.resizeable]': 'resizeEnabled',
+    '[class.resizing]': 'resizing'
   }
 })
 export class ResizeableDirective implements OnDestroy, AfterViewInit {
@@ -38,7 +38,6 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
 
   element: HTMLElement;
   subscription: Subscription;
-  @HostBinding('class.resizing')
   resizing: boolean = false;
   private resizeHandle: HTMLElement;
   private initialWidths: ColumnWidths = {
@@ -108,25 +107,24 @@ export class ResizeableDirective implements OnDestroy, AfterViewInit {
       width: `${nextWidth}px`
     };
 
-    this.emitResizeChangeEvent('resizing', false);
     this.columnResizeService.afterMouseMove(event, this.element, newWidths);
+    this.emitResizeChangeEvent('resizing', false);
   }
 
   private onResizeEnd(event: MouseEvent): void {
     this.resizing = false;
-    this.emitResizeChangeEvent('resize-end', true);
     this.columnResizeService.afterMouseUp(event, this.element, this.initialWidths);
+    this.emitResizeChangeEvent('resize-end', true);
   }
 
   private move(event: MouseEvent, initialWidth: number, mouseDownScreenX: number): number {
     const movementX = event.screenX - mouseDownScreenX;
-    const newWidth = initialWidth + movementX;
+    const newWidth = Math.max(0, initialWidth + movementX);
 
     const overMinWidth = !this.minWidth || newWidth >= this.minWidth;
     const underMaxWidth = !this.maxWidth || newWidth <= this.maxWidth;
 
     if (overMinWidth && underMaxWidth) {
-      this.element.style.width = `${newWidth}px`;
       return newWidth;
     }
     return initialWidth;
